@@ -9,6 +9,10 @@
 
 #define TPS_REG_CMD1        0x08
 #define TPS_REG_DATA1       0x09
+#define TPS_REG_INT_MASK1   0x16
+#define TPS_REG_INT_MASK2   0x17
+#define TPS_REG_INT_CLEAR1  0x18
+#define TPS_REG_INT_CLEAR2  0x19
 #define TPS_REG_POWER_STATE 0x20
 #define TPS_CMD_INVALID     0x21434d44 // !CMD
 
@@ -68,6 +72,64 @@ int tps6598x_command(tps6598x_dev_t *dev, const char *cmd, const u8 *data_in, si
     if (len_out) {
         if (i2c_smbus_read(dev->i2c, dev->addr, TPS_REG_DATA1, data_out, len_out) != len_out)
             return -1;
+    }
+
+    return 0;
+}
+
+int tps6598x_disable_irqs(tps6598x_dev_t *dev, tps6598x_irq_state_t *state)
+{
+    size_t read;
+    int written;
+    static const u8 zeros[CD3218B12_IRQ_WIDTH] = {};
+    static const u8 ones[CD3218B12_IRQ_WIDTH] = {0xff};
+
+    // store IntEvent 1/2 to restore it later
+    read = i2c_smbus_read(dev->i2c, dev->addr, TPS_REG_INT_MASK1, state->int_mask1,
+                          sizeof(state->int_mask1));
+    if (read != CD3218B12_IRQ_WIDTH) {
+        printf("tps6598x: reading TPS_REG_INT_MASK1 failed\n");
+        return -1;
+    }
+    read = i2c_smbus_read(dev->i2c, dev->addr, TPS_REG_INT_MASK2, state->int_mask2,
+                          sizeof(state->int_mask2));
+    if (read != CD3218B12_IRQ_WIDTH) {
+        printf("tps6598x: reading TPS_REG_INT_MASK2 failng\n");
+        return -1;
+    }
+    state->valid = 1;
+
+    // disable interrupts and ck all existing ones
+    written = i2c_smbus_write(dev->i2c, dev->addr, TPS_REG_INT_MASK1, zeros, sizeof(zeros));
+    if (written != CD3218B12_IRQ_WIDTH)
+        return -1;
+    written = i2c_smbus_write(dev->i2c, dev->addr, TPS_REG_INT_MASK2, zeros, sizeof(zeros));
+    if (written != CD3218B12_IRQ_WIDTH)
+        return -1;
+    written = i2c_smbus_write(dev->i2c, dev->addr, TPS_REG_INT_CLEAR1, ones, sizeof(ones));
+    if (written != CD3218B12_IRQ_WIDTH)
+        return -1;
+    written = i2c_smbus_write(dev->i2c, dev->addr, TPS_REG_INT_CLEAR2, ones, sizeof(ones));
+    if (written != CD3218B12_IRQ_WIDTH)
+        return -1;
+
+    return 0;
+}
+
+int tps6598x_restore_irqs(tps6598x_dev_t *dev, tps6598x_irq_state_t *state)
+{
+    int written;
+    written = i2c_smbus_write(dev->i2c, dev->addr, TPS_REG_INT_MASK1, state->int_mask1,
+                              sizeof(state->int_mask1));
+    if (written != CD3218B12_IRQ_WIDTH) {
+        printf("tps6598x: restoring TPS_REG_INT_MASK1 failed\n");
+        return -1;
+    }
+    written = i2c_smbus_write(dev->i2c, dev->addr, TPS_REG_INT_MASK2, state->int_mask2,
+                              sizeof(state->int_mask2));
+    if (written != CD3218B12_IRQ_WIDTH) {
+        printf("tps6598x: restoreing TPS_REG_INT_MASK2 failed\n");
+        return -1;
     }
 
     return 0;

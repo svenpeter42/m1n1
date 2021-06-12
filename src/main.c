@@ -97,6 +97,7 @@ void m1n1_main(void)
 
     exception_shutdown();
     usb_iodev_shutdown();
+    usb_hpm_restore_irqs();
     mmu_shutdown();
 #ifdef USE_FB
     fb_shutdown();
