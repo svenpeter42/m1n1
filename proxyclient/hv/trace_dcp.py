@@ -333,7 +333,6 @@ class EPICEp(AFKEp):
         if sub.type == 0x30:
             self.handle_report_init(hdr, sub, fd)
         else:
-            return
             self.log(f"{dir}Report {sub.type:#x}")
             chexdump(fd.read(), print_fn=self.log)
 
