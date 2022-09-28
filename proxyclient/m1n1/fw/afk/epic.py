@@ -160,7 +160,7 @@ class EPICService:
         cmd = EPICCmd.parse_stream(fd)
         self.log(f"Command {type:#x} #{seq}: {cmd.retcode:#x}")
 
-    def send_cmd(self, type, data, retlen=None):
+    def send_cmd(self, type, data, retlen=None, sync=True):
         if retlen is None:
             retlen = len(data)
         cmd = Container()
@@ -173,16 +173,20 @@ class EPICService:
         pkt = EPICCmd.build(cmd)
         self.ep.send_epic(self.chan, EPICType.COMMAND, EPICCategory.COMMAND, type, self.seq, pkt)
         self.seq += 1
+
+        if not sync:
+            return
+
         while self.reply is None:
             self.ep.asc.work()
         return self.reply
 
 class EPICStandardService(EPICService):
-    def call(self, group, cmd, data=b'', replen=None):
+    def call(self, group, cmd, data=b'', replen=None, sync=True):
         msg = struct.pack("<2xHIII48x", group, cmd, len(data), 0x69706378) + data
         if replen is not None:
             replen += 64
-        resp = self.send_cmd(0xc0, msg, replen)
+        resp = self.send_cmd(0xc0, msg, replen, sync=sync)
         if not resp:
             return
         rgroup, rcmd, rlen, rmagic = struct.unpack("<2xHIII", resp[:16])
