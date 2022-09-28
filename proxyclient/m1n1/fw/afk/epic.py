@@ -70,6 +70,13 @@ class EPICError(Exception):
     pass
 
 
+def epic_service_notify(ntype):
+    def f(x):
+        x.is_notify = True
+        x.ntype = ntype
+        return x
+    return f
+
 class EPICService:
     RX_BUFSIZE = 0x4000
     TX_BUFSIZE = 0x4000
@@ -80,7 +87,15 @@ class EPICService:
         self.ready = False
         self.chan = None
         self.seq = 0
-    
+
+        self.notify_handlers = {}
+        for name in dir(self):
+            i = getattr(self, name)
+            if not callable(i):
+                continue
+            if getattr(i, "is_notify", False):
+                self.notify_handlers[i.ntype] = i
+
     def log(self, msg):
         print(f"[{self.ep.name}.{self.SHORT}] {msg}")
     
@@ -100,16 +115,24 @@ class EPICService:
         chexdump(fd.read())
 
     def handle_notify(self, category, type, seq, fd):
-        retcode = struct.unpack("<I", fd.read(4))[0]
-        self.log(f"Notify {category}/{type} #{seq} ({retcode})")
+        self.log(f"Notify {category}/{type} #{seq}")
         data = fd.read()
-        chexdump(data)
-        print("Send ACK")
+        chexdump(data, print_fn=self.log)
 
-        data = data[:0x50] + b"\x01\x00\x00\x00" + data[0x54:]
+        unk0, unk1, ntype, nlen, nmagic = struct.unpack("<IIIII48x", data[:0x44])
+        self.log(f"  type: {ntype:#x}")
+        payload = data[0x44:0x44+nlen]
 
-        pkt = struct.pack("<I", 0) + data
-        self.ep.send_epic(self.chan, EPICType.NOTIFY_ACK, EPICCategory.REPLY, type, seq, pkt, len(data))
+        fn = self.notify_handlers.get(ntype, None)
+        if fn:
+            data = data[:0x44] + fn(payload)
+        else:
+            self.log(f"  no handler, using default reply")
+            data = data[:0x50] + b"\x01\x00\x00\x00" + data[0x54:]
+
+        print("  reply:")
+        chexdump(data, print_fn=self.log)
+        self.ep.send_epic(self.chan, EPICType.NOTIFY_ACK, EPICCategory.REPLY, type, seq, data, len(data))
 
     def handle_reply(self, category, type, seq, fd):
         off = fd.tell()
