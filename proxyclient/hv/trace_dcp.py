@@ -947,32 +947,32 @@ class DCPAVAudioInterfaceEpicTracer(EPICServiceTracer):
         self.log("> getPortID")
     @epic_service_reply(0, 17)
     def getPortID_reply(self, data):
-        self.log("< getPortID")
-        chexdump(data, print_fn=self.log)
+        id = struct.unpack("<I12x", data)[0]
+        self.log(f"< getPortID = 0x{id:x}")
 
     @epic_service_cmd(1, 18)
     def getElements(self, data):
         self.log("> getElements")
     @epic_service_reply(1, 18)
     def getElements_reply(self, data):
-        self.log("< getElements")
-        chexdump(data, print_fn=self.log)
+        elements = OSSerialize().parse(data[0x30:])
+        self.log(f"< getElements: {elements}")
 
     @epic_service_cmd(1, 20)
     def getProductAttributes(self, data):
         self.log("> getProductAttributes")
     @epic_service_reply(1, 20)
     def getProductAttributes_reply(self, data):
-        self.log("< getProductAttributes")
-        chexdump(data, print_fn=self.log)
+        attrs = OSSerialize().parse(data[0x30:])
+        self.log(f"< getProductAttributes: {attrs}")
 
     @epic_service_cmd(1, 21)
     def getEDIDUUID(self, data):
         self.log("> getEDIDUUID")
     @epic_service_reply(1, 21)
     def getEDIDUUID_reply(self, data):
-        self.log("< getEDIDUUID")
-        chexdump(data, print_fn=self.log)
+        ediduuid = OSSerialize().parse(data[0x30:])
+        self.log(f"< getEDIDUUID: {ediduuid}")
 
     @epic_service_cmd(0, 22)
     def getDataLatency(self, data):
