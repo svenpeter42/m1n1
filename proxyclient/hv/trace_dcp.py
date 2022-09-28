@@ -1067,6 +1067,18 @@ class DCPDPTXHDCPAuthSessionTracer(EPICServiceTracer):
         self.log("< getProtocol")
         chexdump(data, print_fn=self.log)
 
+    @epic_service_notify(0xd)
+    def handle_readRandom(self, dir, data):
+        len = struct.unpack("<I", data[:4])[0]
+        self.log(f"{dir} Notify: readRandom({len:#x})")
+    @epic_service_notify_ack(0xd)
+    def handle_readRandom_ack(self, dir, data):
+        len = struct.unpack("<I", data[:4])[0]
+        rnd = data[0x20:0x20+len]
+        self.log(f"{dir} Notify ack: readRandom({len:#x})")
+        chexdump(rnd, print_fn=self.log)
+
+
 class HDCPService(EPICEp):
     NAME = "hdcp"
     SERVICES = [
