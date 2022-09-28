@@ -261,23 +261,23 @@ class EPICEp(AFKEp):
             chexdump(data, print_fn=self.log)
 
     def handle_report_init(self, hdr, sub, fd):
-            init = EPICAnnounce.parse_stream(fd)
-            self.log(f"Init: {init.name}")
-            self.log(f"  Props: {init.props}")
+        init = EPICAnnounce.parse_stream(fd)
+        self.log(f"Init: {init.name}")
+        self.log(f"  Props: {init.props}")
 
-            if not init.props:
-                init.props = {}
+        if not init.props:
+            init.props = {}
 
-            name = init.props.get("EPICName", init.name)
-            key = name + str(init.props.get("EPICUnit", ""))
-            self.log(f"New service: {key} on channel {hdr.channel}")
+        name = init.props.get("EPICName", init.name)
+        key = name + str(init.props.get("EPICUnit", ""))
+        self.log(f"New service: {key} on channel {hdr.channel}")
 
-            srv_cls = self.serv_names.get(name, EPICServiceTracer)
-            srv = srv_cls(self.tracer, self, key)
-            srv.init(init.props)
-            srv.chan = hdr.channel
-            self.chan_map[hdr.channel] = srv
-            self.serv_map[key] = srv
+        srv_cls = self.serv_names.get(name, EPICServiceTracer)
+        srv = srv_cls(self.tracer, self, key)
+        srv.init(init.props)
+        srv.chan = hdr.channel
+        self.chan_map[hdr.channel] = srv
+        self.serv_map[key] = srv
 
     def handle_report(self, hdr, sub, fd):
         if sub.type == 0x30:
