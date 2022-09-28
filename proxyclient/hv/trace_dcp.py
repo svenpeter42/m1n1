@@ -1096,6 +1096,32 @@ class DCPDPTXRemotePortTarget(Register32):
 
 class DCPDPTXPortEpicTracer(EPICServiceTracer):
     NAME = "dcpdptx-port-epic"
+    NOTIFICATION2NAME = {
+        0: "activate",
+        1: "deactivate",
+        2: "getMaxDriveSettings",
+        3: "setDriveSettings",
+        4: "getDriveSettings",
+        5: "willChangeLinkConfiguration",
+        6: "didChangeLinkConfiguration",
+        7: "getMaxLinkRate",
+        8: "getLinkRate",
+        9: "setLinkRate",
+        10: "getActiveLaneCount",
+        11: "setActiveLanecount",
+        12: "getSupportsDownSpread",
+        13: "getDownSpread",
+        14: "setDownSpread",
+        15: "getSupportsLaneMapping",
+        16: "setLaneMap",
+        17: "getSupportsHPD",
+        18: "forceHotPlugDetect",
+        19: "inactiveSinkDetected",
+        20: "setTiledDisplayHints",
+        21: "deviceNotResponding",
+        22: "deviceBusyTimeout",
+        23: "deviceNotStarted",
+    }
 
     @epic_service_cmd(0, 8)
     def setPowerState(self, data):
@@ -1126,6 +1152,13 @@ class DCPDPTXPortEpicTracer(EPICServiceTracer):
         target = DCPDPTXRemotePortTarget(target)
         self.log(f"< validateConnection(target={target}, unk1=0x{unk1:x})")
 
+    @epic_service_cmd(8, 9)
+    def displayRelease(self, data):
+        self.log(f"> displayRelease")
+    @epic_service_reply(8, 9)
+    def displayRelease_reply(self, data):
+        self.log(f"< displayRelease")
+
     @epic_service_cmd(8, 10)
     def hotPlugDetectChangeOccurred(self, data):
         unk = struct.unpack("<16x?15x", data)[0]
@@ -1134,6 +1167,125 @@ class DCPDPTXPortEpicTracer(EPICServiceTracer):
     def hotPlugDetectChangeOccurred_reply(self, data):
         unk = struct.unpack("<16x?15x", data)[0]
         self.log(f"< hotPlugDetectChangeOccurred(unk={unk})")
+
+    @epic_service_cmd(8, 11)
+    def interruptRequestOccurred(self, data):
+        self.log("> interruptRequestOccurred action")
+    @epic_service_reply(8, 11)
+    def interruptRequestOccurred_reply(self, data):
+        self.log("< interruptRequestOccurred action")
+
+    @epic_service_notify(0)
+    def handle_activate(self, dir, data):
+        self.log(f"{dir} Notify: activate")
+    @epic_service_notify_ack(0)
+    def handle_activate_ack(self, dir, data):
+        self.log(f"{dir} Notify Ack: activate")
+
+    @epic_service_notify(2)
+    def handle_getMaxDriveSettings(self, dir, data):
+        self.log(f"{dir} Notify: getMaxDriveSettings")
+    @epic_service_notify_ack(2)
+    def handle_getMaxDriveSettings_ack(self, dir, data):
+        val = struct.unpack("<16xQ8x", data)[0]
+        self.log(f"{dir} Notify Ack: getMaxDriveSettings = {val:#x}")
+
+    @epic_service_notify(5)
+    def handle_willChangeLinkConfiguration(self, dir, data):
+        self.log(f"{dir} Notify: willChangeLinkConfiguration")
+    @epic_service_notify_ack(5)
+    def handle_willChangeLinkConfiguration_ack(self, dir, data):
+        self.log(f"{dir} Notify Ack: willChangeLinkConfiguration")
+
+    @epic_service_notify(6)
+    def handle_didChangeLinkConfiguration(self, dir, data):
+        self.log(f"{dir} Notify: didChangeLinkConfiguration")
+    @epic_service_notify_ack(6)
+    def handle_didChangeLinkConfiguration_ack(self, dir, data):
+        self.log(f"{dir} Notify Ack: didChangeLinkConfiguration")
+
+    @epic_service_notify(7)
+    def handle_getMaxLinkRate(self, dir, data):
+        self.log(f"{dir} Notify: getMaxLinkRate")
+    @epic_service_notify_ack(7)
+    def handle_getMaxLinkRate_ack(self, dir, data):
+        lr = struct.unpack("<16xI12x", data)[0]
+        self.log(f"{dir} Notify Ack: getMaxLinkRate = {lr:#x}")
+
+    @epic_service_notify(8)
+    def handle_getLinkRate(self, dir, data):
+        self.log(f"{dir} Notify: getLinkRate")
+    @epic_service_notify_ack(8)
+    def handle_getLinkRate_ack(self, dir, data):
+        lr = struct.unpack("<16xI12x", data)[0]
+        self.log(f"{dir} Notify Ack: getLinkRate = {lr:#x}")
+
+    @epic_service_notify(9)
+    def handle_setLinkRate(self, dir, data):
+        lr = struct.unpack("<16xI12x", data)[0]
+        self.log(f"{dir} Notify: setLinkRate({lr:#x})")
+    @epic_service_notify_ack(9)
+    def handle_setLinkRate_ack(self, dir, data):
+        lr = struct.unpack("<16xI12x", data)[0]
+        self.log(f"{dir} Notify Ack: setLinkRate({lr:#x})")
+
+    @epic_service_notify(11)
+    def handle_setActiveLanecount(self, dir, data):
+        lr = struct.unpack("<16xI12x", data)[0]
+        self.log(f"{dir} Notify: setActiveLanecount({lr:#x})")
+    @epic_service_notify_ack(11)
+    def handle_setActiveLanecount_ack(self, dir, data):
+        lr = struct.unpack("<16xI12x", data)[0]
+        self.log(f"{dir} Notify Ack: setActiveLanecount({lr:#x})")
+
+    @epic_service_notify(12)
+    def handle_getSupportsDownSpread(self, dir, data):
+        self.log(f"{dir} Notify: getSupportsDownSpread")
+    @epic_service_notify_ack(12)
+    def handle_getSupportsDownSpread_ack(self, dir, data):
+        hpd = struct.unpack("<16x?15x", data)[0]
+        self.log(f"{dir} Notify Ack: getSupportsDownSpread = {hpd:#x}")
+
+    @epic_service_notify(13)
+    def handle_getDownSpread(self, dir, data):
+        self.log(f"{dir} Notify: getDownSpread")
+    @epic_service_notify_ack(13)
+    def handle_getDownSpread_ack(self, dir, data):
+        hpd = struct.unpack("<16xI12x", data)[0]
+        self.log(f"{dir} Notify Ack: getDownSpread = {hpd:#x}")
+
+    @epic_service_notify(14)
+    def handle_setDownSpread(self, dir, data):
+        val = struct.unpack("<16xI12x", data)[0]
+        self.log(f"{dir} Notify: setDownSpread({val:#x})")
+    @epic_service_notify_ack(14)
+    def handle_setDownSpread_ack(self, dir, data):
+        val = struct.unpack("<16xI12x", data)[0]
+        self.log(f"{dir} Notify Ack: setDownSpread({val:#x})")
+
+    @epic_service_notify(17)
+    def handle_getSupportsHPD(self, dir, data):
+        self.log(f"{dir} Notify: getSupportsHPD")
+    @epic_service_notify_ack(17)
+    def handle_getSupportsHPD_ack(self, dir, data):
+        hpd = struct.unpack("<16x?15x", data)[0]
+        self.log(f"{dir} Notify Ack: getSupportsHPD = {hpd:#x}")
+
+    def handle_notify_default(self, dir, unk0, unk1, ntype, payload):
+        name = self.NOTIFICATION2NAME.get(ntype, None)
+        if name:
+            self.log(f"{dir} Notify: {name}")
+            chexdump(payload, print_fn=self.log)
+        else:
+            super().handle_notify_default(dir, unk0, unk1, ntype, payload)
+
+    def handle_notify_ack_default(self, dir, unk0, unk1, ntype, payload):
+        name = self.NOTIFICATION2NAME.get(ntype, None)
+        if name:
+            self.log(f"{dir} Notify Ack: {name}")
+            chexdump(payload, print_fn=self.log)
+        else:
+            super().handle_notify_ack_default(dir, unk0, unk1, ntype, payload)
 
 class DPTXPortService(EPICEp):
     NAME = "dptxport"
