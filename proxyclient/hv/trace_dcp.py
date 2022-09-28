@@ -382,7 +382,6 @@ class EPICEp(AFKEp):
     def handle_cmd(self, dir, hdr, sub, fd):
         cmd = EPICCmd.parse_stream(fd)
         payload = fd.read()
-        self.log(f"{dir} command")
 
         if sub.type == 0xc0 and cmd.txbuf:
             data = self.dart.ioread(0, cmd.txbuf, cmd.txlen)
