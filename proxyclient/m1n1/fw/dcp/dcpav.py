@@ -39,16 +39,11 @@ class DCPDPTXEndpoint(EPICEndpoint):
         DCPDPControllerService,
     ]
 
-ATC0 = 0
-ATC1 = 1
-ATC2 = 2
-ATC3 = 3
-LPDPTX = 4
-DPTX = 5
-
-DPPHY = 0
-DPIN0 = 1
-DPIN1 = 2
+class DCPDPTXRemotePortTarget(Register32):
+    CORE = 3, 0
+    ATC = 7, 4
+    DIE = 11, 8
+    CONNECTED = 15, 15
 
 class DCPDPTXRemotePortService(EPICStandardService):
     NAME = "dcpdptx-port-epic"
@@ -60,20 +55,26 @@ class DCPDPTXRemotePortService(EPICStandardService):
     def displayRelease(self):
         self.call(8, 9, bytes(16))
 
-    def connectTo(self, connected, unit, port, unk=0):
-        target = 0
-        if connected:
-            target |= (1 << 8)
-        target |= unit
-        target |= port << 4
-        self.call(8, 13, struct.pack("<16xII8x", unk, target))
+    def hotPlugDetectChangeOccurred(self, unk=True):
+        self.call(8, 10, struct.pack("<16x?15x", unk), sync=False)
+
+    def setPower(self):
+        self.call(0, 8, bytes(16))
+
+    def connectTo(self, core, atc, die, connected, unk=0x100):
+        target = DCPDPTXRemotePortTarget(CORE=core, ATC=atc, DIE=die, CONNECTED=connected)
+        self.call(0, 13, struct.pack("<II24x", unk, target.value))
+
+    def validateConnection(self, core, atc, die, connected, unk=0x100)
+        target = DCPDPTXRemotePortTarget(CORE=core, ATC=atc, DIE=die, CONNECTED=connected)
+        self.call(0, 14, struct.pack("<II40x", unk, target.value))
+
 
 class DCPDPTXPortEndpoint(EPICEndpoint):
-    SHORT = "dpport"
+    SHORT = "dptxport"
 
     SERVICES = [
         DCPDPTXRemotePortService,
-        DCPDPControllerService,
     ]
 
 class DCPDPDevice(EPICStandardService):
