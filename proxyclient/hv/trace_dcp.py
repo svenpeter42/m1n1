@@ -12,7 +12,7 @@ from m1n1.trace.asc import ASCTracer, EP, EPState, msg, msg_log, DIR
 from m1n1.fw.afk.rbep import *
 from m1n1.fw.afk.epic import *
 
-if True:
+if False:
     dcp_adt_path = "/arm-io/dcp"
     dcp_dart_adt_path = "/arm-io/dart-dcp"
     disp0_dart_adt_path = "/arm-io/dart-disp0"
@@ -290,6 +290,10 @@ class EPICEp(AFKEp):
         hdr = EPICHeader.parse_stream(fd)
         sub = EPICSubHeader.parse_stream(fd)
 
+        self.log(f"{dir}Ch {hdr.channel} Type {hdr.type} Ver {hdr.version} Tag {hdr.seq}")
+        self.log(f"  Len {sub.length} Ver {sub.version} Cat {sub.category} Type {sub.type:#x} Seq {sub.seq}")
+        chexdump(data, print_fn=self.log)
+
         if sub.category == EPICCategory.REPORT:
             self.handle_report(dir, hdr, sub, fd)
         if sub.category == EPICCategory.NOTIFY:
@@ -333,6 +337,7 @@ class EPICEp(AFKEp):
         if sub.type == 0x30:
             self.handle_report_init(hdr, sub, fd)
         else:
+            return
             self.log(f"{dir}Report {sub.type:#x}")
             chexdump(fd.read(), print_fn=self.log)
 
@@ -1264,10 +1269,12 @@ class DCPDPTXPortEpicTracer(EPICServiceTracer):
     @epic_service_notify(17)
     def handle_getSupportsHPD(self, dir, data):
         self.log(f"{dir} Notify: getSupportsHPD")
+        chexdump(data, print_fn=self.log)
     @epic_service_notify_ack(17)
     def handle_getSupportsHPD_ack(self, dir, data):
         hpd = struct.unpack("<16x?15x", data)[0]
         self.log(f"{dir} Notify Ack: getSupportsHPD = {hpd:#x}")
+        chexdump(data, print_fn=self.log)
 
     def handle_notify_default(self, dir, unk0, unk1, ntype, payload):
         name = self.NOTIFICATION2NAME.get(ntype, None)
